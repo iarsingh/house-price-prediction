@@ -1,5 +1,44 @@
 # House Price Prediction
 
+<!-- project-guide:start -->
+## Project guide
+
+[Project architecture](PROJECT_ARCHITECTURE.md) · [Interview questions and answers](INTERVIEW_QA.md)
+
+Use the architecture document for the component diagram, implementation boundaries, and verification entry points. The interview guide includes source-backed answers and project walkthroughs.
+
+### Implementation map
+
+| Component | Responsibility |
+| --- | --- |
+| [`src/prices/main.py`](src/prices/main.py) | HTTP handlers: `GET /healthz`, `GET /model`, `POST /predict`, `POST /predict/batch` |
+| [`src/prices/model.py`](src/prices/model.py) | Functions: `load`, `split`, `solve`, `fit`, `raw_predict`, `metrics`, `trained` |
+| [`requirements.txt`](requirements.txt) | Implementation or supporting configuration |
+| [`src/prices/__init__.py`](src/prices/__init__.py) | Implementation or supporting configuration |
+| [`tests/test_prices.py`](tests/test_prices.py) | Executable checks and regression examples |
+| [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | GitHub Actions job definitions |
+| [`README.md`](README.md) | Project explanations or operating notes |
+
+### Local setup and verification
+
+From the repository root (the commands follow the checked-in manifests):
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m pytest -q
+```
+
+To serve the FastAPI application locally, install the server separately if it is not already available:
+
+```bash
+python -m pip install uvicorn
+PYTHONPATH=src python -m uvicorn prices.main:app --reload
+```
+
+<!-- project-guide:end -->
+
 Level: 2 — Data science
 
 Skills: Python, linear regression from scratch, train and test split, MAE, RMSE, R²
