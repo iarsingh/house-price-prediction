@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: house-price-prediction
+  labels:
+    app: house-price-prediction
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: house-price-prediction
+  template:
+    metadata:
+      labels:
+        app: house-price-prediction
+    spec:
+      containers:
+        - name: api
+          image: house-price-prediction:local
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /v1/readyz
+              port: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: house-price-prediction
+spec:
+  selector:
+    app: house-price-prediction
+  ports:
+    - port: 80
+      targetPort: 8080

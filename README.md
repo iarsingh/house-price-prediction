@@ -66,3 +66,7 @@ curl -s -X POST localhost:8000/predict -H 'content-type: application/json' -d '{
 - A missing feature, a value that is not a number, square feet outside 200 to 10,000, or bedrooms outside 0 to 10.
 - A house outside the training range is still priced, but `extrapolated` names the feature, so nobody mistakes a guess for an interpolation.
 - Collinear features that make the normal equations unsolvable.
+
+## Ops plane
+
+Workspaces, tenant isolation, job approval, and audit live under `/v1`. Production apply is refused. See `docs/ARCHITECTURE.md`.
