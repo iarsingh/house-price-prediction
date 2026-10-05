@@ -13,12 +13,13 @@ I would demonstrate the linked implementation or examples and distinguish that e
 ## 2. How is this repository organized?
 
 - [`src/prices/main.py`](src/prices/main.py): Implementation or supporting configuration.
+- [`src/prices/ops.py`](src/prices/ops.py): Implementation or supporting configuration.
 - [`src/prices/model.py`](src/prices/model.py): Implementation or supporting configuration.
 - [`requirements.txt`](requirements.txt): Implementation or supporting configuration.
 - [`src/prices/__init__.py`](src/prices/__init__.py): Implementation or supporting configuration.
-- [`tests/test_prices.py`](tests/test_prices.py): Executable checks and regression examples.
-- [`.github/workflows/ci.yml`](.github/workflows/ci.yml): GitHub Actions job definitions.
-- [`README.md`](README.md): Project explanations or operating notes.
+- [`Dockerfile`](Dockerfile): Container build/service configuration.
+- [`Makefile`](Makefile): Implementation or supporting configuration.
+- [`docker-compose.yml`](docker-compose.yml): Container build/service configuration.
 
 [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md) contains the component diagram and the implementation walkthrough.
 
@@ -60,40 +61,45 @@ It uses `InputError`, `abs`, `len`, `max`, `range`, `zip`. This is the code path
 
 Explicit failure paths include:
 
-- `HTTPException(status_code=422, detail='houses must be a list of 1 to 500 items')` in [`src/prices/main.py`](src/prices/main.py#L36).
-- `HTTPException(status_code=422, detail=str(exc))` in [`src/prices/main.py`](src/prices/main.py#L29).
-- `HTTPException(status_code=422, detail=str(exc))` in [`src/prices/main.py`](src/prices/main.py#L40).
+- `HTTPException(status_code=422, detail='houses must be a list of 1 to 500 items')` in [`src/prices/main.py`](src/prices/main.py#L38).
+- `HTTPException(status_code=422, detail=str(exc))` in [`src/prices/main.py`](src/prices/main.py#L31).
+- `HTTPException(status_code=422, detail=str(exc))` in [`src/prices/main.py`](src/prices/main.py#L42).
 - `InputError('features are collinear; the model cannot be fit')` in [`src/prices/model.py`](src/prices/model.py#L32).
 - `InputError(f'{name} is required')` in [`src/prices/model.py`](src/prices/model.py#L82).
 - `InputError(f'{name} must be a number from {low} to {high}')` in [`src/prices/model.py`](src/prices/model.py#L86).
+- `HTTPException(status_code=404, detail='workspace not found')` in [`src/prices/ops.py`](src/prices/ops.py#L77).
 
 I would test both the condition that reaches each exception and the caller that translates it. An explicit raise does not mean every malformed input or dependency failure is handled.
 
 ## 6. Which test would you use to demonstrate correctness?
 
-[`tests/test_prices.py`](tests/test_prices.py#L10) contains `test_known_house_is_close_to_the_generating_formula`:
+[`tests/test_ops.py`](tests/test_ops.py#L8) contains `test_readyz`:
 
 ```python
-def test_known_house_is_close_to_the_generating_formula():
-    payload = client.post("/predict", json={"sqft": 1200, "bedrooms": 2}).json()
-    assert abs(payload["price"] - 214000) / 214000 < 0.05
-    assert payload["extrapolated"] == []
+def test_readyz():
+    r = client.get("/v1/readyz")
+    assert r.status_code == 200
+    assert r.json()["status"] == "ready"
 ```
 
 This is a concrete regression example from the repository. Its assertions establish that case; they do not establish behavior for every input or under production load.
 
 ## 7. What HTTP interface does the code expose?
 
-- `GET /healthz` → `healthz` in [`src/prices/main.py`](src/prices/main.py#L9).
-- `GET /model` → `model` in [`src/prices/main.py`](src/prices/main.py#L14).
-- `POST /predict` → `post_predict` in [`src/prices/main.py`](src/prices/main.py#L25).
-- `POST /predict/batch` → `post_batch` in [`src/prices/main.py`](src/prices/main.py#L33).
+- `GET /healthz` → `healthz` in [`src/prices/main.py`](src/prices/main.py#L11).
+- `GET /model` → `model` in [`src/prices/main.py`](src/prices/main.py#L16).
+- `POST /predict` → `post_predict` in [`src/prices/main.py`](src/prices/main.py#L27).
+- `POST /predict/batch` → `post_batch` in [`src/prices/main.py`](src/prices/main.py#L35).
+- `GET /readyz` → `readyz` in [`src/prices/ops.py`](src/prices/ops.py#L44).
+- `POST /workspaces` → `create_workspace` in [`src/prices/ops.py`](src/prices/ops.py#L49).
+- `GET /workspaces` → `list_workspaces` in [`src/prices/ops.py`](src/prices/ops.py#L66).
+- `POST /workspaces/{workspace_id}/jobs` → `create_job` in [`src/prices/ops.py`](src/prices/ops.py#L73).
 
 These are literal decorators. Application/router prefixes, authentication, and middleware must be checked in the corresponding setup code.
 
 ## 8. Where does state live, and what happens with multiple workers?
 
-Module-level containers include `LIMITS` in [`src/prices/model.py`](src/prices/model.py).
+Module-level containers include `LIMITS` in [`src/prices/model.py`](src/prices/model.py); `_WORKSPACES`, `_JOBS`, `_AUDIT`, `_METRICS` in [`src/prices/ops.py`](src/prices/ops.py).
 
 These containers belong to a Python process. Inspect which are constant fixtures and which are mutated. Mutable process state needs an explicit shared-storage or synchronization strategy before multiple workers can provide consistent behavior.
 
@@ -137,3 +143,9 @@ The implementation in [`src/prices/model.py`](src/prices/model.py#L79) branches 
 - `not isinstance(value, (int, float)) or isinstance(value, bool) or (not low <= value <= high)`
 
 A useful extension is a table-driven test that covers each condition just below, at, and above its boundary where applicable. These expressions are the current rules; changing them changes behavior and should be justified by the project’s acceptance criteria.
+
+## 14. What does the operations plane add, and where is its limit?
+
+[`src/prices/ops.py`](src/prices/ops.py) declares `GET /readyz`, `POST /workspaces`, `GET /workspaces`, `POST /workspaces/{workspace_id}/jobs`, `GET /jobs/{job_id}`, `POST /jobs/{job_id}/approve`, `GET /audit`, `GET /metrics`. Inspect the application’s `include_router` call for its URL prefix.
+
+Its state containers are `_WORKSPACES`, `_JOBS`, `_AUDIT`, `_METRICS`. The job-approval handler defines whether a target is accepted or refused; check that branch and the associated tests instead of treating a recorded job as a successful infrastructure apply.

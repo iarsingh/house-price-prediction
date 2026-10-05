@@ -15,7 +15,9 @@ flowchart LR
     M0["src/prices/__init__.py"]
     M1["src/prices/main.py"]
     M2["src/prices/model.py"]
+    M3["src/prices/ops.py"]
     M1 -->|imports| M2
+    M1 -->|imports| M3
 ```
 
 For Python repositories, arrows show resolved local imports, not network calls or deployment order. Otherwise the diagram is a repository component map; containment arrows do not assert runtime integration.
@@ -25,21 +27,41 @@ For Python repositories, arrows show resolved local imports, not network calls o
 | Component | Responsibility |
 | --- | --- |
 | [`src/prices/main.py`](src/prices/main.py) | HTTP handlers: `GET /healthz`, `GET /model`, `POST /predict`, `POST /predict/batch` |
+| [`src/prices/ops.py`](src/prices/ops.py) | HTTP handlers: `GET /readyz`, `POST /workspaces`, `GET /workspaces`, `POST /workspaces/{workspace_id}/jobs`, `GET /jobs/{job_id}` |
 | [`src/prices/model.py`](src/prices/model.py) | Functions: `load`, `split`, `solve`, `fit`, `raw_predict`, `metrics`, `trained` |
 | [`requirements.txt`](requirements.txt) | Implementation or supporting configuration |
 | [`src/prices/__init__.py`](src/prices/__init__.py) | Implementation or supporting configuration |
+| [`Dockerfile`](Dockerfile) | Container build/service configuration |
+| [`Makefile`](Makefile) | Implementation or supporting configuration |
+| [`docker-compose.yml`](docker-compose.yml) | Container build/service configuration |
+| [`tests/test_ops.py`](tests/test_ops.py) | Executable checks and regression examples |
 | [`tests/test_prices.py`](tests/test_prices.py) | Executable checks and regression examples |
 | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | GitHub Actions job definitions |
 | [`README.md`](README.md) | Project explanations or operating notes |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Project explanations or operating notes |
+
+## Existing design and operating guides
+
+These checked-in guides provide the project’s detailed design, operational context, or deployment view:
+
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Request interface
 
 | Method and path | Handler | Source |
 | --- | --- | --- |
-| `GET /healthz` | `healthz` | [`src/prices/main.py`](src/prices/main.py#L9) |
-| `GET /model` | `model` | [`src/prices/main.py`](src/prices/main.py#L14) |
-| `POST /predict` | `post_predict` | [`src/prices/main.py`](src/prices/main.py#L25) |
-| `POST /predict/batch` | `post_batch` | [`src/prices/main.py`](src/prices/main.py#L33) |
+| `GET /healthz` | `healthz` | [`src/prices/main.py`](src/prices/main.py#L11) |
+| `GET /model` | `model` | [`src/prices/main.py`](src/prices/main.py#L16) |
+| `POST /predict` | `post_predict` | [`src/prices/main.py`](src/prices/main.py#L27) |
+| `POST /predict/batch` | `post_batch` | [`src/prices/main.py`](src/prices/main.py#L35) |
+| `GET /readyz` | `readyz` | [`src/prices/ops.py`](src/prices/ops.py#L44) |
+| `POST /workspaces` | `create_workspace` | [`src/prices/ops.py`](src/prices/ops.py#L49) |
+| `GET /workspaces` | `list_workspaces` | [`src/prices/ops.py`](src/prices/ops.py#L66) |
+| `POST /workspaces/{workspace_id}/jobs` | `create_job` | [`src/prices/ops.py`](src/prices/ops.py#L73) |
+| `GET /jobs/{job_id}` | `get_job` | [`src/prices/ops.py`](src/prices/ops.py#L96) |
+| `POST /jobs/{job_id}/approve` | `approve_job` | [`src/prices/ops.py`](src/prices/ops.py#L105) |
+| `GET /audit` | `audit` | [`src/prices/ops.py`](src/prices/ops.py#L122) |
+| `GET /metrics` | `metrics` | [`src/prices/ops.py`](src/prices/ops.py#L138) |
 
 The table lists literal route decorators found in the inspected Python modules. Router prefixes and middleware can add behavior; check the linked handler and application setup before calling an endpoint.
 
@@ -134,18 +156,23 @@ def fit(rows):
 
 | Explicit exception | Source |
 | --- | --- |
-| `HTTPException(status_code=422, detail='houses must be a list of 1 to 500 items')` | [`src/prices/main.py`](src/prices/main.py#L36) |
-| `HTTPException(status_code=422, detail=str(exc))` | [`src/prices/main.py`](src/prices/main.py#L29) |
-| `HTTPException(status_code=422, detail=str(exc))` | [`src/prices/main.py`](src/prices/main.py#L40) |
+| `HTTPException(status_code=422, detail='houses must be a list of 1 to 500 items')` | [`src/prices/main.py`](src/prices/main.py#L38) |
+| `HTTPException(status_code=422, detail=str(exc))` | [`src/prices/main.py`](src/prices/main.py#L31) |
+| `HTTPException(status_code=422, detail=str(exc))` | [`src/prices/main.py`](src/prices/main.py#L42) |
 | `InputError('features are collinear; the model cannot be fit')` | [`src/prices/model.py`](src/prices/model.py#L32) |
 | `InputError(f'{name} is required')` | [`src/prices/model.py`](src/prices/model.py#L82) |
 | `InputError(f'{name} must be a number from {low} to {high}')` | [`src/prices/model.py`](src/prices/model.py#L86) |
+| `HTTPException(status_code=404, detail='workspace not found')` | [`src/prices/ops.py`](src/prices/ops.py#L77) |
+| `HTTPException(status_code=404, detail='job not found')` | [`src/prices/ops.py`](src/prices/ops.py#L100) |
+| `HTTPException(status_code=404, detail='job not found')` | [`src/prices/ops.py`](src/prices/ops.py#L109) |
+| `HTTPException(status_code=403, detail='production apply is disabled in this lab')` | [`src/prices/ops.py`](src/prices/ops.py#L113) |
 
 These are explicit exceptions in the inspected source, rather than a claim that every failure is handled. Follow the calling handler to see whether the exception becomes an HTTP response or propagates.
 
 ## Data and state
 
 - [`src/prices/model.py`](src/prices/model.py) defines module-level containers: `LIMITS`.
+- [`src/prices/ops.py`](src/prices/ops.py) defines module-level containers: `_WORKSPACES`, `_JOBS`, `_AUDIT`, `_METRICS`.
 
 Module-level dictionaries/lists live in a Python process. They can be fixtures or mutable state; inspect writes before treating them as persistent storage. A production extension would need to define persistence and concurrency behavior explicitly.
 
@@ -171,6 +198,12 @@ The implementation in [`src/prices/model.py`](src/prices/model.py#L79) branches 
 
 A useful extension is a table-driven test that covers each condition just below, at, and above its boundary where applicable. These expressions are the current rules; changing them changes behavior and should be justified by the project’s acceptance criteria.
 
+### What does the operations plane add, and where is its limit
+
+[`src/prices/ops.py`](src/prices/ops.py) declares `GET /readyz`, `POST /workspaces`, `GET /workspaces`, `POST /workspaces/{workspace_id}/jobs`, `GET /jobs/{job_id}`, `POST /jobs/{job_id}/approve`, `GET /audit`, `GET /metrics`. Inspect the application’s `include_router` call for its URL prefix.
+
+Its state containers are `_WORKSPACES`, `_JOBS`, `_AUDIT`, `_METRICS`. The job-approval handler defines whether a target is accepted or refused; check that branch and the associated tests instead of treating a recorded job as a successful infrastructure apply.
+
 ## Setup and verification
 
 The following commands are derived from the checked-in dependency/test contracts. Execute them from the repository root; the block prepares a local environment, not a cloud deployment.
@@ -184,7 +217,7 @@ python -m pytest -q
 
 Python dependencies: [`requirements.txt`](requirements.txt).
 
-Test entry points: [`tests/test_prices.py`](tests/test_prices.py).
+Test entry points: [`tests/test_ops.py`](tests/test_ops.py), [`tests/test_prices.py`](tests/test_prices.py).
 
 Automation definitions: [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Read their triggers and job steps to determine what CI actually runs.
 
