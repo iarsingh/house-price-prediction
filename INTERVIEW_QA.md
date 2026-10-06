@@ -90,10 +90,10 @@ This is a concrete regression example from the repository. Its assertions establ
 - `GET /model` → `model` in [`src/prices/main.py`](src/prices/main.py#L16).
 - `POST /predict` → `post_predict` in [`src/prices/main.py`](src/prices/main.py#L27).
 - `POST /predict/batch` → `post_batch` in [`src/prices/main.py`](src/prices/main.py#L35).
-- `GET /readyz` → `readyz` in [`src/prices/ops.py`](src/prices/ops.py#L44).
-- `POST /workspaces` → `create_workspace` in [`src/prices/ops.py`](src/prices/ops.py#L49).
-- `GET /workspaces` → `list_workspaces` in [`src/prices/ops.py`](src/prices/ops.py#L66).
-- `POST /workspaces/{workspace_id}/jobs` → `create_job` in [`src/prices/ops.py`](src/prices/ops.py#L73).
+- `GET /readyz` → `readyz` in [`src/prices/ops.py`](src/prices/ops.py#L74).
+- `POST /workspaces` → `create_workspace` in [`src/prices/ops.py`](src/prices/ops.py#L80).
+- `GET /workspaces` → `list_workspaces` in [`src/prices/ops.py`](src/prices/ops.py#L98).
+- `POST /workspaces/{workspace_id}/jobs` → `create_job` in [`src/prices/ops.py`](src/prices/ops.py#L106).
 
 These are literal decorators. Application/router prefixes, authentication, and middleware must be checked in the corresponding setup code.
 

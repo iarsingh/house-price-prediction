@@ -54,14 +54,14 @@ These checked-in guides provide the project’s detailed design, operational con
 | `GET /model` | `model` | [`src/prices/main.py`](src/prices/main.py#L16) |
 | `POST /predict` | `post_predict` | [`src/prices/main.py`](src/prices/main.py#L27) |
 | `POST /predict/batch` | `post_batch` | [`src/prices/main.py`](src/prices/main.py#L35) |
-| `GET /readyz` | `readyz` | [`src/prices/ops.py`](src/prices/ops.py#L44) |
-| `POST /workspaces` | `create_workspace` | [`src/prices/ops.py`](src/prices/ops.py#L49) |
-| `GET /workspaces` | `list_workspaces` | [`src/prices/ops.py`](src/prices/ops.py#L66) |
-| `POST /workspaces/{workspace_id}/jobs` | `create_job` | [`src/prices/ops.py`](src/prices/ops.py#L73) |
-| `GET /jobs/{job_id}` | `get_job` | [`src/prices/ops.py`](src/prices/ops.py#L96) |
-| `POST /jobs/{job_id}/approve` | `approve_job` | [`src/prices/ops.py`](src/prices/ops.py#L105) |
-| `GET /audit` | `audit` | [`src/prices/ops.py`](src/prices/ops.py#L122) |
-| `GET /metrics` | `metrics` | [`src/prices/ops.py`](src/prices/ops.py#L138) |
+| `GET /readyz` | `readyz` | [`src/prices/ops.py`](src/prices/ops.py#L74) |
+| `POST /workspaces` | `create_workspace` | [`src/prices/ops.py`](src/prices/ops.py#L80) |
+| `GET /workspaces` | `list_workspaces` | [`src/prices/ops.py`](src/prices/ops.py#L98) |
+| `POST /workspaces/{workspace_id}/jobs` | `create_job` | [`src/prices/ops.py`](src/prices/ops.py#L106) |
+| `GET /jobs/{job_id}` | `get_job` | [`src/prices/ops.py`](src/prices/ops.py#L130) |
+| `POST /jobs/{job_id}/approve` | `approve_job` | [`src/prices/ops.py`](src/prices/ops.py#L140) |
+| `GET /audit` | `audit` | [`src/prices/ops.py`](src/prices/ops.py#L160) |
+| `GET /metrics` | `metrics` | [`src/prices/ops.py`](src/prices/ops.py#L176) |
 
 The table lists literal route decorators found in the inspected Python modules. Router prefixes and middleware can add behavior; check the linked handler and application setup before calling an endpoint.
 
