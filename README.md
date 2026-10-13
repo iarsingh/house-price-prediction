@@ -1,5 +1,12 @@
 # House Price Prediction
 
+## Overview
+
+A house price model built from scratch on a 16-sale dataset of square feet, bedrooms and price, with every fourth row held out for testing. It fits ordinary least squares with an intercept by solving the normal equations with Gaussian elimination, without NumPy, so each number can be checked by hand. The HTTP API reports weights and MAE, RMSE and R² on train and test, prices single houses or batches of up to 500, rejects out-of-range or non-numeric inputs, and flags any feature outside the training range as `extrapolated`.
+
+- **Built with:** Python, uvicorn, pytest, Docker, GitHub Actions
+- **Scope:** Local data science exercise on a tiny sample dataset; no hosted model, and production apply is refused.
+
 <!-- project-guide:start -->
 ## Project guide
 
